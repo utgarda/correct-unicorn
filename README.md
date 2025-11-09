@@ -1,9 +1,67 @@
 # correct-unicorn
-A cleanroom reimplementation of [correctpony](https://github.com/maandree/correctpony)
 
-### Build
-    stack build
-    
-### Run in development
-    stack exec -- correct-unicorn --words 4
-    // zoo daniel drew one
+Passphrase generator inspired by [xkcd 936](https://xkcd.com/936/) and [correctpony](https://github.com/maandree/correctpony).
+
+Generates memorable passphrases from system dictionaries with ANSI color output.
+
+## Prerequisites
+
+### Arch Linux
+
+```bash
+sudo pacman -S words stack
+```
+
+### Ubuntu 22.04 / 24.04 LTS
+
+```bash
+sudo apt-get install wamerican haskell-stack
+```
+
+### macOS
+
+```bash
+# Dictionary pre-installed
+brew install haskell-stack
+```
+
+## Quick Start
+
+```bash
+# Build
+stack build
+
+# Generate passphrase
+stack exec -- correct-unicorn --words 4
+# Output: correct horse battery staple
+
+# Interactive mode (view available dictionaries)
+stack exec -- correct-unicorn --interactive
+```
+
+## Features
+
+- Auto-discovers system dictionaries
+- Validates dictionaries (uniqueness, minimum size)
+- ANSI color cycling for better readability
+- Interactive mode for transparency
+- Minimal character substitution for complexity requirements
+
+## Configuration
+
+See [docs/configuration.md](docs/configuration.md)
+
+- System config: `/etc/correct-unicorn/config.toml` (dictionary discovery order)
+- User config: `~/.config/correct-unicorn/config.toml` (UI preferences only)
+
+## Documentation
+
+- [Installation Guide](docs/installation.md)
+- [Dictionary Management](docs/dictionaries.md)
+- [Configuration](docs/configuration.md)
+- [Features Roadmap](docs/features.md)
+- [Packaging](docs/packaging/)
+
+## License
+
+MIT
