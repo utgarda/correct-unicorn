@@ -19,7 +19,7 @@ ansiWhite = "\x1b[37m"
 ansiReset :: [Char]
 ansiReset = "\x1b[0m"
 ansiBold :: [Char]
-ansiBold = "\x1b[0m"
+ansiBold = "\x1b[1m"
 
 paintWords :: [[Char]] -> [[Char]] -> [[Char]]
 paintWords words colors =

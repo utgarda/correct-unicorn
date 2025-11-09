@@ -1,0 +1,41 @@
+# correct-unicorn system configuration
+# Location: /etc/correct-unicorn/config.toml
+#
+# This file is shipped with the package and defines system-wide defaults.
+# System administrators can modify this for local preferences.
+
+# Dictionary auto-discovery paths (checked in order)
+# First valid dictionary found will be used
+dict-paths = [
+  "/usr/share/dict/english",           # Arch Linux (correctpony wordlists)
+  "/usr/share/dict/american-english",  # Debian/Ubuntu
+  "/usr/share/dict/words",              # Universal fallback/symlink
+  "/usr/dict/words"                     # Legacy Unix systems
+]
+
+# Minimum dictionary requirements
+min-words = 1000        # Minimum unique words for security
+min-word-length = 2     # Minimum length per word
+
+# Character substitutions for password complexity requirements
+# Applied when --require-special-chars or similar flags are used
+# Only substitutes MINIMUM needed (e.g., one number, one special char)
+# to satisfy arbitrary complexity requirements while keeping memorability
+[substitutions]
+# Priority order for substitutions (applied until requirements met)
+'o' = '0'   # Number (first priority)
+'a' = '@'   # Special character (second priority)
+'e' = '3'   # Alternative number
+'i' = '!'   # Alternative special char
+'s' = '$'   # Alternative special char
+# Add more as needed for different complexity requirements
+
+# Future system-wide options (not yet implemented):
+#
+# # Default word count (can be overridden by CLI --words flag)
+# default-word-count = 4
+#
+# # Enforce security requirements
+# [security]
+# require-unique-words = true
+# allow-numbers-in-words = false

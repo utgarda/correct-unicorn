@@ -1,0 +1,30 @@
+# correct-unicorn configuration
+# Location: ~/.config/correct-unicorn/config.toml
+#
+# This file contains UI preferences only.
+# Security-critical settings (dictionary, word count) use CLI flags.
+
+# Color scheme (ANSI colors cycle through words)
+# Available: green, yellow, blue, magenta, cyan, red
+colors = ["green", "yellow", "blue", "magenta"]
+
+# Separator between words
+# Examples:
+#   ""    = no separator (onetwothreefour)
+#   " "   = space (one two three four)
+#   "-"   = dash (one-two-three-four)
+#   "."   = dot (one.two.three.four)
+separator = ""
+
+# Bold formatting
+bold = true
+
+# Future options (not yet implemented):
+#
+# [pass]
+# enabled = false
+# base-path = "generated"
+#
+# [clipboard]
+# enabled = false
+# clear-after = 30  # seconds
