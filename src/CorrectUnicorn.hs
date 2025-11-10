@@ -17,6 +17,9 @@ import Config
 data Settings = Settings
   { settingsWordCount :: Int
   , settingsDictPath :: Maybe FilePath
+  , settingsSeparator :: Maybe String
+  , settingsNoColor :: Bool
+  , settingsMinChars :: Maybe Int
   } deriving (Show, Eq)
 
 settings :: Parser Settings
@@ -32,23 +35,76 @@ settings = Settings
           ( long "dict"
          <> metavar "PATH"
          <> help "Dictionary file path override" ))
+      <*> optional (strOption
+          ( long "separator"
+         <> short 's'
+         <> metavar "SEP"
+         <> help "Word separator (default: space)" ))
+      <*> switch
+          ( long "no-color"
+         <> short 'p'
+         <> help "Disable ANSI colors" )
+      <*> optional (option auto
+          ( long "chars"
+         <> short 'c'
+         <> metavar "COUNT"
+         <> help "Minimum total character count (excluding ANSI codes)" ))
+
+-- | Apply transformation only if condition is true, otherwise identity
+applyIf :: Bool -> (a -> a) -> (a -> a)
+applyIf True f = f
+applyIf False _ = id
+
+-- | Strip ANSI escape codes from a string
+stripAnsi :: String -> String
+stripAnsi [] = []
+stripAnsi ('\ESC':'[':rest) =
+  case dropWhile (/= 'm') rest of
+    (_:remaining) -> stripAnsi remaining  -- Skip the 'm' and continue
+    [] -> []  -- End of string
+stripAnsi (c:rest) = c : stripAnsi rest
+
+-- | Generate a password with a specific word count
+generateWithWordCount :: RuntimeConfig -> [String] -> Int -> StdGen -> String
+generateWithWordCount config dictionaryWords wordCount stdGen =
+  let dictSize = length dictionaryWords
+      indexes = take wordCount $ randoms stdGen :: [Int]
+      cappedIndexes = fmap (`mod` dictSize) indexes
+      usedWords = [dictionaryWords !! x | x <- cappedIndexes]
+
+      -- Prepare word-level transformations
+      ansiColors = resolveColors (runtimeColors config)
+      paintWords' ws = paintWords ws ansiColors
+
+      -- Word-level transformations
+      wordTransforms = [ applyIf (not $ runtimeNoColor config) paintWords' ]
+      applyWordTransforms = foldr (.) id wordTransforms
+
+      -- String-level transformations (after joining)
+      sep = T.unpack $ runtimeSeparator config
+      stringTransforms = [ applyIf (runtimeBold config) PrettyAnsi.bold ]
+      applyStringTransforms = foldr (.) id stringTransforms
+
+  in applyStringTransforms . joinWithSeparator sep . applyWordTransforms $ usedWords
 
 genPassword :: RuntimeConfig -> IO ()
 genPassword config = do
   content <- readFile (T.unpack $ runtimeDictPath config)
   stdGen <- getStdGen
   let dictionaryWords = lines content
-      dictSize = length dictionaryWords
-      wordCount = runtimeWordCount config
-      indexes = take wordCount $ randoms stdGen :: [Int]
-      cappedIndexes = fmap (`mod` dictSize) indexes
-      usedWords = [dictionaryWords !! x | x <- cappedIndexes]
-      ansiColors = resolveColors (runtimeColors config)
-      coloredWords = paintWords usedWords ansiColors
-      sep = T.unpack $ runtimeSeparator config
-      output = joinWithSeparator sep coloredWords
-      finalOutput = if runtimeBold config then PrettyAnsi.bold output else output
-  putStrLn finalOutput
+      output = generatePassword config dictionaryWords (runtimeWordCount config) stdGen
+  putStrLn output
+  where
+    generatePassword :: RuntimeConfig -> [String] -> Int -> StdGen -> String
+    generatePassword cfg dictionaryWords wordCount gen =
+      let result = generateWithWordCount cfg dictionaryWords wordCount gen
+          charCount = length $ stripAnsi result
+      in case runtimeMinChars cfg of
+           Nothing -> result
+           Just minChars ->
+             if charCount >= minChars
+               then result
+               else generatePassword cfg dictionaryWords (wordCount + 1) gen
 
 resolveColors :: [Text] -> [String]
 resolveColors colorNames =

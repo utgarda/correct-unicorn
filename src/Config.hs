@@ -44,9 +44,11 @@ data RuntimeConfig = RuntimeConfig
   , runtimeColors :: [Text]
   , runtimeSeparator :: Text
   , runtimeBold :: Bool
+  , runtimeNoColor :: Bool
   , runtimeSubstitutions :: Map Text Text
   , runtimeMinWords :: Int
   , runtimeMinWordLength :: Int
+  , runtimeMinChars :: Maybe Int
   } deriving (Show, Eq)
 
 -- | Default system configuration
@@ -112,8 +114,8 @@ loadUserConfig = do
 
 
 -- | Merge configurations with CLI settings
-mergeConfig :: SystemConfig -> UserConfig -> Int -> Maybe FilePath -> RuntimeConfig
-mergeConfig sysConfig userConfig wordCount mDictPath =
+mergeConfig :: SystemConfig -> UserConfig -> Int -> Maybe FilePath -> Maybe String -> Bool -> Maybe Int -> RuntimeConfig
+mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChars =
   RuntimeConfig
     { runtimeDictPath = case mDictPath of
         Just path -> T.pack path
@@ -122,9 +124,13 @@ mergeConfig sysConfig userConfig wordCount mDictPath =
           [] -> "/usr/share/dict/english"
     , runtimeWordCount = wordCount
     , runtimeColors = colors userConfig
-    , runtimeSeparator = separator userConfig
+    , runtimeSeparator = case mSeparator of
+        Just sep -> T.pack sep
+        Nothing -> separator userConfig
     , runtimeBold = bold userConfig
+    , runtimeNoColor = noColor
     , runtimeSubstitutions = substitutions sysConfig
     , runtimeMinWords = minWords sysConfig
     , runtimeMinWordLength = minWordLength sysConfig
+    , runtimeMinChars = mMinChars
     }

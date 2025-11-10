@@ -1,0 +1,93 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           correct-unicorn
+version:        0.1.0.0
+synopsis:       passphrase generator inspired by xkcd 936
+description:    Please see the README on GitHub at <https://github.com/utgarda/correct-unicorn#readme>
+category:       security
+homepage:       https://github.com/utgarda/correct-unicorn#readme
+bug-reports:    https://github.com/utgarda/correct-unicorn/issues
+author:         Evgeny Tsvigun
+maintainer:     utgarda@gmail.com
+copyright:      2019 Evgeny Tsvigun
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/utgarda/correct-unicorn
+
+library
+  exposed-modules:
+      Config
+      CorrectUnicorn
+      PrettyAnsi
+  other-modules:
+      Paths_correct_unicorn
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , directory >=1.3
+    , filepath >=1.4
+    , optparse-applicative >=0.14.3
+    , random
+    , text
+    , tomland >=1.3
+  default-language: Haskell2010
+
+executable correct-unicorn
+  main-is: Main.hs
+  other-modules:
+      Paths_correct_unicorn
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , correct-unicorn
+    , directory >=1.3
+    , filepath >=1.4
+    , optparse-applicative >=0.14.3
+    , random
+    , text
+    , tomland >=1.3
+  default-language: Haskell2010
+
+test-suite correct-unicorn-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      CorrectUnicornTests
+      PrettyAnsiTests
+      Paths_correct_unicorn
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , correct-unicorn
+    , directory >=1.3
+    , filepath >=1.4
+    , hedgehog >=1.0
+    , optparse-applicative >=0.14.3
+    , random
+    , tasty >=1.4
+    , tasty-golden >=2.3
+    , tasty-hedgehog >=1.2
+    , tasty-hunit >=0.10
+    , text
+    , tomland >=1.3
+  default-language: Haskell2010

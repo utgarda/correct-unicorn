@@ -1,6 +1,7 @@
 module Main where
 
 import Options.Applicative
+import System.IO (hIsTerminalDevice, stdout)
 
 import CorrectUnicorn
 import Config
@@ -10,11 +11,16 @@ main = do
   sysConfig <- loadSystemConfig
   userConfig <- loadUserConfig
   cliSettings <- execParser opts
-  let runtimeConfig = mergeConfig
+  isTTY <- hIsTerminalDevice stdout
+  let noColor = settingsNoColor cliSettings || not isTTY
+      runtimeConfig = mergeConfig
         sysConfig
         userConfig
         (settingsWordCount cliSettings)
         (settingsDictPath cliSettings)
+        (settingsSeparator cliSettings)
+        noColor
+        (settingsMinChars cliSettings)
   genPassword runtimeConfig
   where
     opts = info (settings <**> helper)
