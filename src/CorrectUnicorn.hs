@@ -9,6 +9,7 @@ import System.Random
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Char
 
 import qualified PrettyAnsi
 import PrettyAnsi (ansiBlue, ansiYellow, colorNameToAnsi, paintWords)
@@ -20,6 +21,7 @@ data Settings = Settings
   , settingsSeparator :: Maybe String
   , settingsNoColor :: Bool
   , settingsMinChars :: Maybe Int
+  , settingsCapitalize :: Bool
   } deriving (Show, Eq)
 
 settings :: Parser Settings
@@ -49,11 +51,21 @@ settings = Settings
          <> short 'c'
          <> metavar "COUNT"
          <> help "Minimum total character count (excluding ANSI codes)" ))
+      <*> switch
+          ( long "capitalize"
+         <> help "Capitalize first letter of each word" )
 
 -- | Apply transformation only if condition is true, otherwise identity
 applyIf :: Bool -> (a -> a) -> (a -> a)
 applyIf True f = f
 applyIf False _ = id
+
+-- | Capitalize first letter of each word in a list
+capitalizeWords :: [String] -> [String]
+capitalizeWords = map capitalizeWord
+  where
+    capitalizeWord [] = []
+    capitalizeWord (c:cs) = Data.Char.toUpper c : cs
 
 -- | Strip ANSI escape codes from a string
 stripAnsi :: String -> String
@@ -77,7 +89,9 @@ generateWithWordCount config dictionaryWords wordCount stdGen =
       paintWords' ws = paintWords ws ansiColors
 
       -- Word-level transformations
-      wordTransforms = [ applyIf (not $ runtimeNoColor config) paintWords' ]
+      wordTransforms = [ applyIf (runtimeCapitalize config) capitalizeWords
+                       , applyIf (not $ runtimeNoColor config) paintWords'
+                       ]
       applyWordTransforms = foldr (.) id wordTransforms
 
       -- String-level transformations (after joining)

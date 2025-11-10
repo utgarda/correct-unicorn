@@ -49,6 +49,7 @@ data RuntimeConfig = RuntimeConfig
   , runtimeMinWords :: Int
   , runtimeMinWordLength :: Int
   , runtimeMinChars :: Maybe Int
+  , runtimeCapitalize :: Bool
   } deriving (Show, Eq)
 
 -- | Default system configuration
@@ -114,8 +115,8 @@ loadUserConfig = do
 
 
 -- | Merge configurations with CLI settings
-mergeConfig :: SystemConfig -> UserConfig -> Int -> Maybe FilePath -> Maybe String -> Bool -> Maybe Int -> RuntimeConfig
-mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChars =
+mergeConfig :: SystemConfig -> UserConfig -> Int -> Maybe FilePath -> Maybe String -> Bool -> Maybe Int -> Bool -> RuntimeConfig
+mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChars capitalize =
   RuntimeConfig
     { runtimeDictPath = case mDictPath of
         Just path -> T.pack path
@@ -133,4 +134,5 @@ mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChar
     , runtimeMinWords = minWords sysConfig
     , runtimeMinWordLength = minWordLength sysConfig
     , runtimeMinChars = mMinChars
+    , runtimeCapitalize = capitalize
     }

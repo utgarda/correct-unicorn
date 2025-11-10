@@ -21,6 +21,7 @@ main = do
         (settingsSeparator cliSettings)
         noColor
         (settingsMinChars cliSettings)
+        (settingsCapitalize cliSettings)
   genPassword runtimeConfig
   where
     opts = info (settings <**> helper)
