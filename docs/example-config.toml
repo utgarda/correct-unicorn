@@ -10,12 +10,13 @@
 colors = ["blue", "yellow"]
 
 # Separator between words
+# Default: " " (space)
 # Examples:
-#   ""    = no separator (onetwothreefour)
 #   " "   = space (one two three four)
+#   ""    = no separator (onetwothreefour)
 #   "-"   = dash (one-two-three-four)
 #   "."   = dot (one.two.three.four)
-separator = ""
+separator = " "
 
 # Bold formatting
 bold = true

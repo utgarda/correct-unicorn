@@ -62,7 +62,7 @@ defaultSystemConfig = SystemConfig
 defaultUserConfig :: UserConfig
 defaultUserConfig = UserConfig
   { colors = ["blue", "yellow"]
-  , separator = ""
+  , separator = " "
   , bold = True
   }
 
