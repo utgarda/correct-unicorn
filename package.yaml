@@ -29,6 +29,11 @@ dependencies:
 - text
 - containers
 
+ghc-options:
+- -Wall
+- -Wcompat
+- -Wredundant-constraints
+
 library:
   source-dirs: src
 

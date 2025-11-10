@@ -5,8 +5,9 @@
 # Security-critical settings (dictionary, word count) use CLI flags.
 
 # Color scheme (ANSI colors cycle through words)
-# Available: green, yellow, blue, magenta, cyan, red
-colors = ["green", "yellow", "blue", "magenta"]
+# Available: blue, yellow, green, magenta, cyan, red
+# Default: ["blue", "yellow"] (matches correctpony)
+colors = ["blue", "yellow"]
 
 # Separator between words
 # Examples:

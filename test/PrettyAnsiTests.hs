@@ -2,7 +2,6 @@ module PrettyAnsiTests (tests) where
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Data.List (isPrefixOf)
 
 import PrettyAnsi
 

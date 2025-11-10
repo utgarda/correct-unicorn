@@ -22,8 +22,19 @@ ansiBold :: [Char]
 ansiBold = "\x1b[1m"
 
 paintWords :: [[Char]] -> [[Char]] -> [[Char]]
-paintWords words colors =
-    [color ++ word | (color, word) <- zip (cycle colors) words]
+paintWords ws colors =
+    [color ++ word | (color, word) <- zip (cycle colors) ws]
 
 bold :: [Char] -> [Char]
 bold string = ansiBold ++ string
+
+colorNameToAnsi :: String -> Maybe String
+colorNameToAnsi "black" = Just ansiBlack
+colorNameToAnsi "red" = Just ansiRed
+colorNameToAnsi "green" = Just ansiGreen
+colorNameToAnsi "yellow" = Just ansiYellow
+colorNameToAnsi "blue" = Just ansiBlue
+colorNameToAnsi "magenta" = Just ansiMagenta
+colorNameToAnsi "cyan" = Just ansiCyan
+colorNameToAnsi "white" = Just ansiWhite
+colorNameToAnsi _ = Nothing

@@ -1,12 +1,21 @@
 module Main where
 
 import Options.Applicative
-import Data.Semigroup ((<>))
 
 import CorrectUnicorn
+import Config
 
 main :: IO ()
-main = genPassword =<< execParser opts
+main = do
+  sysConfig <- loadSystemConfig
+  userConfig <- loadUserConfig
+  cliSettings <- execParser opts
+  let runtimeConfig = mergeConfig
+        sysConfig
+        userConfig
+        (settingsWordCount cliSettings)
+        (settingsDictPath cliSettings)
+  genPassword runtimeConfig
   where
     opts = info (settings <**> helper)
       ( fullDesc
