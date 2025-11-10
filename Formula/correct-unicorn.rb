@@ -11,7 +11,7 @@ class CorrectUnicorn < Formula
 
   def install
     # Build with Stack
-    system "stack", "build", "--system-ghc", "--no-install-ghc"
+    system "stack", "build", "--install-ghc"
 
     # Install binary
     bin.install Dir[".stack-work/install/**/bin/correct-unicorn"].first
