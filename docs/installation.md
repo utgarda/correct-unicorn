@@ -58,6 +58,22 @@ paru -S correct-unicorn
 correct-unicorn --words 4
 ```
 
+### macOS (Homebrew)
+
+```bash
+# Install from local formula
+brew install Formula/correct-unicorn.rb
+
+# Or from tap (future)
+brew tap utgarda/correct-unicorn
+brew install correct-unicorn
+
+# Run
+correct-unicorn --words 4
+```
+
+See [packaging/macos.md](packaging/macos.md) for details.
+
 ### Ubuntu/Debian
 
 ```bash
@@ -107,4 +123,5 @@ correct-unicorn --interactive
 
 - [dictionaries.md](dictionaries.md) - Dictionary management and validation
 - [configuration.md](configuration.md) - Configuration options
-- [packaging/](packaging/) - Package building instructions
+- [packaging.md](packaging.md) - Common packaging guide
+- [packaging/](packaging/) - Platform-specific packaging instructions

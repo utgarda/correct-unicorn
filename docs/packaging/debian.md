@@ -1,5 +1,7 @@
 # Debian/Ubuntu Packaging
 
+See [common packaging guide](../packaging.md) for general information.
+
 ## Building from Source
 
 ```bash
@@ -11,24 +13,18 @@ git clone https://github.com/utgarda/correct-unicorn.git
 cd correct-unicorn
 stack build
 
-# Install binary
+# Install
 sudo install -Dm755 $(stack path --local-install-root)/bin/correct-unicorn /usr/bin/correct-unicorn
-
-# Install system config
 sudo install -Dm644 etc/correct-unicorn/config.toml /etc/correct-unicorn/config.toml
-
-# Install documentation
-sudo install -Dm644 LICENSE /usr/share/licenses/correct-unicorn/LICENSE
 sudo install -Dm644 docs/*.md /usr/share/doc/correct-unicorn/
+sudo install -Dm644 LICENSE /usr/share/licenses/correct-unicorn/LICENSE
 ```
-
-## Creating .deb Package
-
-(Future: detailed .deb packaging instructions)
-
-For now, users should build from source as shown above.
 
 ## Dependencies
 
-- **Runtime**: wamerican (dictionary)
-- **Build**: haskell-stack, git, build-essential
+- **Runtime**: `wamerican` (dictionary at `/usr/share/dict/american-english`)
+- **Build**: `haskell-stack git build-essential`
+
+## Future: .deb Package
+
+Detailed .deb packaging instructions to be added.
