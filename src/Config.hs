@@ -10,6 +10,7 @@ module Config
   , mergeConfig
   , defaultSystemConfig
   , defaultUserConfig
+  , findValidDictionary
   ) where
 
 import qualified Data.Map.Strict as Map
@@ -114,15 +115,28 @@ loadUserConfig = do
   `catch` \(_ :: SomeException) -> return defaultUserConfig
 
 
+-- | Find first valid dictionary from a list of paths
+findValidDictionary :: [Text] -> IO (Maybe Text)
+findValidDictionary [] = return Nothing
+findValidDictionary (path:rest) = do
+  exists <- doesFileExist (T.unpack path)
+  if exists
+    then return (Just path)
+    else findValidDictionary rest
+
 -- | Merge configurations with CLI settings
-mergeConfig :: SystemConfig -> UserConfig -> Int -> Maybe FilePath -> Maybe String -> Bool -> Maybe Int -> Bool -> RuntimeConfig
-mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChars capitalize =
-  RuntimeConfig
-    { runtimeDictPath = case mDictPath of
-        Just path -> T.pack path
-        Nothing -> case dictPaths sysConfig of
-          (p:_) -> p
-          [] -> "/usr/share/dict/english"
+mergeConfig :: SystemConfig -> UserConfig -> Int -> Maybe FilePath -> Maybe String -> Bool -> Maybe Int -> Bool -> IO RuntimeConfig
+mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChars capitalize = do
+  dictPath <- case mDictPath of
+    Just path -> return $ T.pack path
+    Nothing -> do
+      found <- findValidDictionary (dictPaths sysConfig)
+      return $ case found of
+        Just p -> p
+        Nothing -> "/usr/share/dict/words"  -- Universal fallback
+
+  return RuntimeConfig
+    { runtimeDictPath = dictPath
     , runtimeWordCount = wordCount
     , runtimeColors = colors userConfig
     , runtimeSeparator = case mSeparator of

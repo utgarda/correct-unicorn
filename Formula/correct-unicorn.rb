@@ -16,6 +16,9 @@ class CorrectUnicorn < Formula
     # Install binary
     bin.install Dir[".stack-work/install/**/bin/correct-unicorn"].first
 
+    # Install system config
+    (etc/"correct-unicorn").install "etc/correct-unicorn/config.toml"
+
     # Install example config
     (share/"correct-unicorn").install "docs/example-config.toml"
 

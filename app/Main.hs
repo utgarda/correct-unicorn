@@ -13,15 +13,15 @@ main = do
   cliSettings <- execParser opts
   isTTY <- hIsTerminalDevice stdout
   let noColor = settingsNoColor cliSettings || not isTTY
-      runtimeConfig = mergeConfig
-        sysConfig
-        userConfig
-        (settingsWordCount cliSettings)
-        (settingsDictPath cliSettings)
-        (settingsSeparator cliSettings)
-        noColor
-        (settingsMinChars cliSettings)
-        (settingsCapitalize cliSettings)
+  runtimeConfig <- mergeConfig
+    sysConfig
+    userConfig
+    (settingsWordCount cliSettings)
+    (settingsDictPath cliSettings)
+    (settingsSeparator cliSettings)
+    noColor
+    (settingsMinChars cliSettings)
+    (settingsCapitalize cliSettings)
   genPassword runtimeConfig
   where
     opts = info (settings <**> helper)
