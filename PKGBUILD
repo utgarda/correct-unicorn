@@ -1,6 +1,6 @@
 # Maintainer: Evgenii Tsvigun <gene@chainhackers.xyz>
 pkgname=correct-unicorn
-pkgver=0.1.0.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Passphrase generator inspired by xkcd 936"
 arch=('x86_64' 'aarch64')
@@ -13,14 +13,14 @@ sha256sums=('SKIP')
 
 build() {
     cd "${pkgname}"
-    stack build --system-ghc --no-install-ghc
+    stack build
 }
 
 package() {
     cd "${pkgname}"
 
     # Install binary
-    local _binpath=$(stack path --local-install-root --system-ghc --no-install-ghc)/bin/correct-unicorn
+    local _binpath=$(stack path --local-install-root)/bin/correct-unicorn
     install -Dm755 "${_binpath}" "${pkgdir}/usr/bin/correct-unicorn"
 
     # Install system configuration

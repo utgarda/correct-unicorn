@@ -11,6 +11,18 @@ main = do
   sysConfig <- loadSystemConfig
   userConfig <- loadUserConfig
   cliSettings <- execParser opts
+
+  if settingsInteractive cliSettings
+    then showDictionaryStatus sysConfig (settingsDictPath cliSettings)
+    else generateAndDisplay sysConfig userConfig cliSettings
+  where
+    opts = info (settings <**> helper)
+      ( fullDesc
+     <> progDesc "passphrase generator inspired by xkcd 936"
+     <> header "have fun!" )
+
+generateAndDisplay :: SystemConfig -> UserConfig -> Settings -> IO ()
+generateAndDisplay sysConfig userConfig cliSettings = do
   isTTY <- hIsTerminalDevice stdout
   let noColor = settingsNoColor cliSettings || not isTTY
   runtimeConfig <- mergeConfig
@@ -23,8 +35,3 @@ main = do
     (settingsMinChars cliSettings)
     (settingsCapitalize cliSettings)
   genPassword runtimeConfig
-  where
-    opts = info (settings <**> helper)
-      ( fullDesc
-     <> progDesc "passphrase generator inspired by xkcd 936"
-     <> header "have fun!" )

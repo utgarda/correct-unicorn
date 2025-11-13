@@ -8,5 +8,5 @@ import CorrectUnicorn
 tests :: TestTree
 tests = testGroup "CorrectUnicorn tests"
   [ testCase "Settings word count" $
-      settingsWordCount (Settings 5 Nothing Nothing False Nothing False) @?= 5
+      settingsWordCount (Settings 5 Nothing Nothing False Nothing False False) @?= 5
   ]

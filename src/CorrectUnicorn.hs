@@ -1,15 +1,18 @@
 module CorrectUnicorn
     ( genPassword
+    , showDictionaryStatus
     , Settings(..)
     , settings
     ) where
 
 import Options.Applicative
 import System.Random
+import System.Directory (doesFileExist)
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Char
+import Text.Printf (printf)
 
 import qualified PrettyAnsi
 import PrettyAnsi (ansiBlue, ansiYellow, colorNameToAnsi, paintWords)
@@ -22,6 +25,7 @@ data Settings = Settings
   , settingsNoColor :: Bool
   , settingsMinChars :: Maybe Int
   , settingsCapitalize :: Bool
+  , settingsInteractive :: Bool
   } deriving (Show, Eq)
 
 settings :: Parser Settings
@@ -54,6 +58,21 @@ settings = Settings
       <*> switch
           ( long "capitalize"
          <> help "Capitalize first letter of each word" )
+      <*> switch
+          ( long "interactive"
+         <> short 'I'
+         <> help "Show available dictionaries and their status" )
+
+-- | Dictionary source type
+data DictSource = Custom | Configured | Fallback deriving (Show, Eq)
+
+-- | Dictionary status for display
+data DictStatus = DictStatus
+  { dictPath :: FilePath
+  , dictExists :: Bool
+  , dictWordCount :: Maybe Int
+  , dictSource :: DictSource
+  } deriving (Show, Eq)
 
 -- | Apply transformation only if condition is true, otherwise identity
 applyIf :: Bool -> (a -> a) -> (a -> a)
@@ -88,9 +107,9 @@ generateWithWordCount config dictionaryWords wordCount stdGen =
       ansiColors = resolveColors (runtimeColors config)
       paintWords' ws = paintWords ws ansiColors
 
-      -- Word-level transformations
-      wordTransforms = [ applyIf (runtimeCapitalize config) capitalizeWords
-                       , applyIf (not $ runtimeNoColor config) paintWords'
+      -- Word-level transformations (applied in order: capitalize first, then color)
+      wordTransforms = [ applyIf (not $ runtimeNoColor config) paintWords'
+                       , applyIf (runtimeCapitalize config) capitalizeWords
                        ]
       applyWordTransforms = foldr (.) id wordTransforms
 
@@ -100,6 +119,73 @@ generateWithWordCount config dictionaryWords wordCount stdGen =
       applyStringTransforms = foldr (.) id stringTransforms
 
   in applyStringTransforms . joinWithSeparator sep . applyWordTransforms $ usedWords
+
+-- | Determine which dictionary will be selected
+determineSelectedDict :: [Text] -> Maybe FilePath -> IO FilePath
+determineSelectedDict configPaths mCustomPath = case mCustomPath of
+  Just path -> return path
+  Nothing -> do
+    found <- findValidDictionary configPaths
+    return $ maybe "/usr/share/dict/words" T.unpack found
+
+-- | Check a single dictionary and return its status
+checkDict :: FilePath -> DictSource -> IO DictStatus
+checkDict path source = do
+  exists <- doesFileExist path
+  wordCount <- if exists
+    then do
+      content <- readFile path
+      return $ Just $ length $ lines content
+    else return Nothing
+  return $ DictStatus path exists wordCount source
+
+-- | Display dictionary discovery status
+showDictionaryStatus :: SystemConfig -> Maybe FilePath -> IO ()
+showDictionaryStatus sysConfig mDictPath = do
+  putStrLn "Available dictionaries:"
+  putStrLn ""
+
+  -- Build list of paths to check
+  let configPaths = dictPaths sysConfig
+      fallbackPath = "/usr/share/dict/words"
+      hasFallback = any (\p -> T.unpack p == fallbackPath) configPaths
+      pathsToCheck = case mDictPath of
+        Just customPath -> [(customPath, Custom)]
+        Nothing -> map (\p -> (T.unpack p, Configured)) configPaths
+                   ++ if hasFallback then [] else [(fallbackPath, Fallback)]
+
+  -- Check all dictionaries
+  statuses <- mapM (uncurry checkDict) pathsToCheck
+
+  -- Determine which will be selected
+  selectedPath <- determineSelectedDict configPaths mDictPath
+
+  -- Display each dictionary
+  mapM_ (printDictStatus selectedPath) statuses
+
+  -- Display selection summary
+  putStrLn ""
+  let selectedStatus = filter (\s -> dictPath s == selectedPath) statuses
+  case selectedStatus of
+    (s:_) -> case dictWordCount s of
+      Just wc -> printf "Using: %s (%d words)\n" (dictPath s) wc
+      Nothing -> printf "Using: %s (word count unavailable)\n" (dictPath s)
+    [] -> printf "Using: %s\n" selectedPath
+
+  where
+    printDictStatus :: FilePath -> DictStatus -> IO ()
+    printDictStatus selectedPath status =
+      let isSelected = dictPath status == selectedPath
+          marker = if dictExists status then "✓" else "✗"
+          selectedTag = if isSelected then " [SELECTED]" else ""
+          sourceTag = case dictSource status of
+            Custom -> " [CUSTOM]"
+            Fallback -> " [FALLBACK]"
+            Configured -> ""
+          countStr = case dictWordCount status of
+            Just wc -> printf " (%d words)" wc
+            Nothing -> " (not found)"
+      in printf "  %s %s%s%s%s\n" marker (dictPath status) countStr sourceTag selectedTag
 
 genPassword :: RuntimeConfig -> IO ()
 genPassword config = do
