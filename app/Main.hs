@@ -14,7 +14,9 @@ main = do
 
   if settingsInteractive cliSettings
     then showDictionaryStatus sysConfig (settingsDictPath cliSettings)
-    else generateAndDisplay sysConfig userConfig cliSettings
+  else if settingsSecurity cliSettings
+    then showSecurityStats sysConfig userConfig cliSettings
+  else generateAndDisplay sysConfig userConfig cliSettings
   where
     opts = info (settings <**> helper)
       ( fullDesc

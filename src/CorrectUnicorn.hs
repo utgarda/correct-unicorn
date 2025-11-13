@@ -1,6 +1,7 @@
 module CorrectUnicorn
     ( genPassword
     , showDictionaryStatus
+    , showSecurityStats
     , Settings(..)
     , settings
     ) where
@@ -13,6 +14,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Char
 import Text.Printf (printf)
+import Data.Duration (humanReadableDuration')
 
 import qualified PrettyAnsi
 import PrettyAnsi (ansiBlue, ansiYellow, colorNameToAnsi, paintWords)
@@ -26,6 +28,7 @@ data Settings = Settings
   , settingsMinChars :: Maybe Int
   , settingsCapitalize :: Bool
   , settingsInteractive :: Bool
+  , settingsSecurity :: Bool
   } deriving (Show, Eq)
 
 settings :: Parser Settings
@@ -62,6 +65,10 @@ settings = Settings
           ( long "interactive"
          <> short 'I'
          <> help "Show available dictionaries and their status" )
+      <*> switch
+          ( long "security"
+         <> short 'z'
+         <> help "Show security statistics (entropy and crack time estimates)" )
 
 -- | Dictionary source type
 data DictSource = Custom | Configured | Fallback deriving (Show, Eq)
@@ -186,6 +193,59 @@ showDictionaryStatus sysConfig mDictPath = do
             Just wc -> printf " (%d words)" wc
             Nothing -> " (not found)"
       in printf "  %s %s%s%s%s\n" marker (dictPath status) countStr sourceTag selectedTag
+
+-- | Calculate bits of entropy: log2(dictSize ^ wordCount)
+calculateEntropy :: Int -> Int -> Double
+calculateEntropy dictSize wordCount =
+  logBase 2 (fromIntegral dictSize ** fromIntegral wordCount)
+
+-- | Calculate total keyspace: dictSize ^ wordCount
+calculateKeyspace :: Int -> Int -> Integer
+calculateKeyspace dictSize wordCount =
+  toInteger dictSize ^ wordCount
+
+-- | Calculate crack time in seconds
+estimateCrackTime :: Integer -> Double -> Double
+estimateCrackTime keyspace guessesPerSec =
+  fromIntegral keyspace / guessesPerSec
+
+-- | Display security statistics
+showSecurityStats :: SystemConfig -> UserConfig -> Settings -> IO ()
+showSecurityStats sysConfig _userConfig cliSettings = do
+  -- Determine which dictionary will be used
+  dictPath <- determineSelectedDict (dictPaths sysConfig) (settingsDictPath cliSettings)
+
+  -- Read and count words
+  content <- readFile dictPath
+  let dictWords = lines content
+      dictSize = length dictWords
+      wordCount = settingsWordCount cliSettings
+      keyspace = calculateKeyspace dictSize wordCount
+      entropy = calculateEntropy dictSize wordCount
+
+  -- Display statistics header
+  printf "Security Statistics:\n\n\
+         \  Dictionary: %s\n\
+         \  Dictionary size: %d words\n\
+         \  Words in passphrase: %d\n\
+         \  Total combinations: %d\n\
+         \  Entropy: %.1f bits\n\n\
+         \Estimated crack time (knowing dictionary and word count):\n"
+    dictPath dictSize wordCount keyspace entropy
+
+  -- Show crack times at different rates
+  let rates = [ (1000000, "1,000,000 guesses/second (modern GPU)")
+              , (1000, "1,000 guesses/second (online throttled)")
+              , (0.2, "1 guess per 5 seconds (strict limit)")
+              ]
+  mapM_ (showCrackTime keyspace) rates
+
+  where
+    showCrackTime :: Integer -> (Double, String) -> IO ()
+    showCrackTime keyspace (rate, desc) = do
+      let seconds = estimateCrackTime keyspace rate
+          timeStr = humanReadableDuration' seconds
+      printf "  At %s: %s\n" desc timeStr
 
 genPassword :: RuntimeConfig -> IO ()
 genPassword config = do

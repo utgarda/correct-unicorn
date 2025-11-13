@@ -40,6 +40,7 @@ library
     , containers
     , directory >=1.3
     , filepath >=1.4
+    , human-readable-duration
     , optparse-applicative >=0.14.3
     , random
     , text
@@ -59,6 +60,7 @@ executable correct-unicorn
     , correct-unicorn
     , directory >=1.3
     , filepath >=1.4
+    , human-readable-duration
     , optparse-applicative >=0.14.3
     , random
     , text
@@ -82,6 +84,7 @@ test-suite correct-unicorn-test
     , directory >=1.3
     , filepath >=1.4
     , hedgehog >=1.0
+    , human-readable-duration
     , optparse-applicative >=0.14.3
     , random
     , tasty >=1.4

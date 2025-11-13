@@ -28,6 +28,7 @@ dependencies:
 - filepath >= 1.4
 - text
 - containers
+- human-readable-duration
 
 ghc-options:
 - -Wall
