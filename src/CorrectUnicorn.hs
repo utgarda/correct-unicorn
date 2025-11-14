@@ -7,6 +7,11 @@ module CorrectUnicorn
     , calculateEntropy
     , calculateKeyspace
     , estimateCrackTime
+    , stripAnsi
+    , capitalizeWords
+    , joinWithSeparator
+    , resolveColors
+    , generateWithWordCount
     ) where
 
 import Options.Applicative
