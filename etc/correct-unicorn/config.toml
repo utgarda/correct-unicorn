@@ -7,9 +7,9 @@
 # Dictionary auto-discovery paths (checked in order)
 # First valid dictionary found will be used
 dict-paths = [
+  "/usr/share/dict/words",              # Universal (macOS, most Linux)
   "/usr/share/dict/english",           # Arch Linux (correctpony wordlists)
   "/usr/share/dict/american-english",  # Debian/Ubuntu
-  "/usr/share/dict/words",              # Universal fallback/symlink
   "/usr/dict/words"                     # Legacy Unix systems
 ]
 

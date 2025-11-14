@@ -57,7 +57,7 @@ data RuntimeConfig = RuntimeConfig
 -- | Default system configuration
 defaultSystemConfig :: SystemConfig
 defaultSystemConfig = SystemConfig
-  { dictPaths = ["/usr/share/dict/english", "/usr/share/dict/american-english", "/usr/share/dict/words"]
+  { dictPaths = ["/usr/share/dict/words", "/usr/share/dict/english", "/usr/share/dict/american-english"]
   , minWords = 1000
   , minWordLength = 2
   , substitutions = Map.fromList [("o", "0"), ("a", "@"), ("e", "3"), ("i", "!"), ("s", "$")]
