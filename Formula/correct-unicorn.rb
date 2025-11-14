@@ -1,8 +1,8 @@
 class CorrectUnicorn < Formula
   desc "Passphrase generator inspired by xkcd 936"
   homepage "https://github.com/utgarda/correct-unicorn"
-  url "https://github.com/utgarda/correct-unicorn/archive/refs/tags/v0.1.2.tar.gz"
-  sha256 "6019b8a33caac7085c1cb28ec232e956e7d6431ba9369221af3543f14c76104e"
+  url "https://github.com/utgarda/correct-unicorn/archive/refs/tags/v0.1.3.tar.gz"
+  sha256 "398a44d922a19e24b4260bee907f08a1e9faecf4f2ef7475d8edf277fd3daf28"
   license "MIT"
   head "https://github.com/utgarda/correct-unicorn.git", branch: "master"
 
