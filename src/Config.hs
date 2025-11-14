@@ -15,7 +15,7 @@ module Config
 
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
-import qualified Data.Maybe
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Toml
@@ -130,19 +130,13 @@ mergeConfig :: SystemConfig -> UserConfig -> Int -> Maybe FilePath -> Maybe Stri
 mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChars capitalize = do
   dictPath <- case mDictPath of
     Just path -> return $ T.pack path
-    Nothing -> do
-      found <- findValidDictionary (dictPaths sysConfig)
-      return $ case found of
-        Just p -> p
-        Nothing -> "/usr/share/dict/words"  -- Universal fallback
+    Nothing -> fromMaybe "/usr/share/dict/words" <$> findValidDictionary (dictPaths sysConfig)  -- Universal fallback
 
   return RuntimeConfig
     { runtimeDictPath = dictPath
     , runtimeWordCount = wordCount
     , runtimeColors = colors userConfig
-    , runtimeSeparator = case mSeparator of
-        Just sep -> T.pack sep
-        Nothing -> separator userConfig
+    , runtimeSeparator = maybe (separator userConfig) T.pack mSeparator
     , runtimeBold = bold userConfig
     , runtimeNoColor = noColor
     , runtimeSubstitutions = substitutions sysConfig
