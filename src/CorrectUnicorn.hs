@@ -4,6 +4,9 @@ module CorrectUnicorn
     , showSecurityStats
     , Settings(..)
     , settings
+    , calculateEntropy
+    , calculateKeyspace
+    , estimateCrackTime
     ) where
 
 import Options.Applicative
@@ -155,11 +158,11 @@ showDictionaryStatus sysConfig mDictPath = do
   -- Build list of paths to check
   let configPaths = dictPaths sysConfig
       fallbackPath = "/usr/share/dict/words"
-      hasFallback = any (\p -> T.unpack p == fallbackPath) configPaths
+      hasFallback = any ((== fallbackPath) . T.unpack) configPaths
       pathsToCheck = case mDictPath of
         Just customPath -> [(customPath, Custom)]
         Nothing -> map (\p -> (T.unpack p, Configured)) configPaths
-                   ++ if hasFallback then [] else [(fallbackPath, Fallback)]
+                   ++ [(fallbackPath, Fallback) | not hasFallback]
 
   -- Check all dictionaries
   statuses <- mapM (uncurry checkDict) pathsToCheck
@@ -213,10 +216,10 @@ estimateCrackTime keyspace guessesPerSec =
 showSecurityStats :: SystemConfig -> UserConfig -> Settings -> IO ()
 showSecurityStats sysConfig _userConfig cliSettings = do
   -- Determine which dictionary will be used
-  dictPath <- determineSelectedDict (dictPaths sysConfig) (settingsDictPath cliSettings)
+  selectedDictPath <- determineSelectedDict (dictPaths sysConfig) (settingsDictPath cliSettings)
 
   -- Read and count words
-  content <- readFile dictPath
+  content <- readFile selectedDictPath
   let dictWords = lines content
       dictSize = length dictWords
       wordCount = settingsWordCount cliSettings
@@ -231,7 +234,7 @@ showSecurityStats sysConfig _userConfig cliSettings = do
          \  Total combinations: %d\n\
          \  Entropy: %.1f bits\n\n\
          \Estimated crack time (knowing dictionary and word count):\n"
-    dictPath dictSize wordCount keyspace entropy
+    selectedDictPath dictSize wordCount keyspace entropy
 
   -- Show crack times at different rates
   let rates = [ (1000000, "1,000,000 guesses/second (modern GPU)")
