@@ -8,14 +8,19 @@ import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
 import CorrectUnicorn
+import Config (RuntimeConfig(..))
 import PrettyAnsi (paintWords)
 import Data.Char (isUpper)
+import System.Random (mkStdGen)
+import qualified Data.Text as T
+import qualified Data.Map as Map
 import Prelude hiding (words)
+import qualified Prelude as P
 
 tests :: TestTree
 tests = testGroup "CorrectUnicorn tests"
   [ testCase "Settings word count" $
-      settingsWordCount (Settings 5 Nothing Nothing False Nothing False False False) @?= 5
+      settingsWordCount (Settings 5 Nothing Nothing False Nothing False False False False False) @?= 5
 
   , testGroup "Security calculations (unit tests)"
       [ testCase "calculateEntropy with dict=100, words=4" $
@@ -39,6 +44,38 @@ tests = testGroup "CorrectUnicorn tests"
           estimateCrackTime 1000000 1000000 @?= 1.0
       ]
 
+  , testGroup "Word filtering (unit tests)"
+      [ testCase "filterWords removes words with apostrophe" $
+          filterWords "'" ["hello", "don't", "world", "it's"] @?= ["hello", "world"]
+
+      , testCase "filterWords with empty stop list returns all words" $
+          filterWords "" ["hello", "don't", "world"] @?= ["hello", "don't", "world"]
+
+      , testCase "filterWords with multiple stop chars" $
+          filterWords "'-" ["hello", "don't", "world", "self-aware"] @?= ["hello", "world"]
+
+      , testCase "defaultStopChars contains apostrophe" $
+          defaultStopChars @?= "'"
+
+      , testCase "filterWords preserves order" $
+          filterWords "'" ["apple", "can't", "banana", "won't", "cherry"] @?= ["apple", "banana", "cherry"]
+
+      , testCase "filterWords handles empty input" $
+          filterWords "'" [] @?= []
+
+      , testCase "filterWords handles all words filtered" $
+          filterWords "'" ["don't", "won't", "can't", "it's"] @?= []
+
+      , testCase "filterWords with possessives and contractions" $
+          filterWords "'" ["Aaron's", "aardvark's", "don't", "won't", "hello", "world"] @?= ["hello", "world"]
+
+      , testCase "filterWords filters both lowercase and uppercase" $
+          filterWords "aA" ["apple", "banana", "Apricot", "grape"] @?= []
+
+      , testCase "filterWords is case-sensitive" $
+          filterWords "a" ["Apple", "Banana", "Grape"] @?= ["Apple"]
+      ]
+
   , testGroup "Property tests"
       [ testGroup "Helper functions"
           [ testProperty "stripAnsi is idempotent" prop_stripAnsiIdempotent
@@ -48,6 +85,7 @@ tests = testGroup "CorrectUnicorn tests"
           , testProperty "joinWithSeparator creates correct number of separators" prop_joinSeparatorCount
           , testProperty "paintWords preserves word count" prop_paintWordsPreservesCount
           , testProperty "resolveColors returns defaults when empty" prop_resolveColorsDefaults
+          , testProperty "filterWords removes all words with stop chars" prop_filterWordsRemovesStopChars
           ]
 
       , testGroup "Security calculations"
@@ -55,6 +93,13 @@ tests = testGroup "CorrectUnicorn tests"
           , testProperty "entropy increases with larger dictionary" prop_entropyIncreasesWithDict
           , testProperty "keyspace calculation is correct" prop_keyspaceCalculation
           , testProperty "crack time is inversely proportional to rate" prop_crackTimeInverse
+          ]
+
+      , testGroup "Word filtering properties"
+          [ testProperty "filterWords is idempotent" prop_filterWordsIdempotent
+          , testProperty "filtered list is subset of original" prop_filterWordsSubset
+          , testProperty "filterWords with defaultStopChars removes apostrophes" prop_filterDefaultRemovesApostrophes
+          , testProperty "generated passphrases contain no stop chars" prop_generatedNoStopChars
           ]
       ]
   ]
@@ -155,3 +200,78 @@ prop_crackTimeInverse = property $ do
   let time2 = estimateCrackTime keyspace (rate * 2)
   -- time2 should be approximately half of time1
   assert (abs (time2 * 2 - time1) < time1 * 0.01)  -- Within 1% tolerance
+
+prop_filterWordsRemovesStopChars :: Property
+prop_filterWordsRemovesStopChars = property $ do
+  stopChars <- forAll $ Gen.string (Range.linear 1 5) Gen.alpha
+  words <- forAll $ Gen.list (Range.linear 0 20) (Gen.string (Range.linear 1 10) Gen.alpha)
+  let filtered = filterWords stopChars words
+  -- No word in filtered list should contain any stop character
+  assert (all (\word -> not (any (`elem` word) stopChars)) filtered)
+
+-- Word filtering property tests
+
+prop_filterWordsIdempotent :: Property
+prop_filterWordsIdempotent = property $ do
+  stopChars <- forAll $ Gen.string (Range.linear 0 5) Gen.alpha
+  words <- forAll $ Gen.list (Range.linear 0 20) (Gen.string (Range.linear 1 10) Gen.alpha)
+  let filtered1 = filterWords stopChars words
+  let filtered2 = filterWords stopChars filtered1
+  filtered1 === filtered2
+
+prop_filterWordsSubset :: Property
+prop_filterWordsSubset = property $ do
+  stopChars <- forAll $ Gen.string (Range.linear 0 5) Gen.alpha
+  words <- forAll $ Gen.list (Range.linear 0 20) (Gen.string (Range.linear 1 10) Gen.alpha)
+  let filtered = filterWords stopChars words
+  -- Every word in filtered must exist in original
+  assert (all (`elem` words) filtered)
+  -- Filtered list cannot be longer than original
+  assert (length filtered <= length words)
+
+prop_filterDefaultRemovesApostrophes :: Property
+prop_filterDefaultRemovesApostrophes = property $ do
+  -- Generate words with and without apostrophes
+  cleanWords <- forAll $ Gen.list (Range.linear 0 10) (Gen.string (Range.linear 1 10) Gen.alpha)
+  let wordsWithApostrophes = ["don't", "won't", "can't", "it's", "I'm"]
+  let allWords = cleanWords ++ wordsWithApostrophes
+  let filtered = filterWords defaultStopChars allWords
+  -- No word in filtered should contain an apostrophe
+  assert (all (\word -> '\'' `notElem` word) filtered)
+
+prop_generatedNoStopChars :: Property
+prop_generatedNoStopChars = property $ do
+  -- Generate a dictionary with some words containing apostrophes
+  cleanWords <- forAll $ Gen.list (Range.linear 10 50) (Gen.string (Range.linear 3 10) Gen.alpha)
+  let wordsWithApostrophes = ["don't", "won't", "can't", "it's"]
+  let dictionary = cleanWords ++ wordsWithApostrophes
+  let filteredDict = filterWords defaultStopChars dictionary
+
+  -- Skip test if filtered dict is empty
+  if null filteredDict
+    then discard
+    else do
+      wordCount <- forAll $ Gen.int (Range.linear 1 5)
+      gen <- forAll $ Gen.element [42..100]  -- Use predictable seed range
+
+      -- Create a minimal RuntimeConfig for testing
+      let testConfig = RuntimeConfig
+            { runtimeDictPath = T.pack ""  -- Not used in generateWithWordCount
+            , runtimeWordCount = wordCount
+            , runtimeSeparator = T.pack " "
+            , runtimeColors = []
+            , runtimeNoColor = True
+            , runtimeBold = False
+            , runtimeSubstitutions = Map.empty
+            , runtimeMinWords = 0
+            , runtimeMinWordLength = 0
+            , runtimeMinChars = Nothing
+            , runtimeCapitalize = False
+            }
+
+      let stdGen = mkStdGen gen
+      let output = generateWithWordCount testConfig filteredDict wordCount stdGen
+      let outputWords = P.words output  -- Split by whitespace
+
+      -- Verify no word contains an apostrophe
+      assert (all (\word -> '\'' `notElem` word) outputWords)

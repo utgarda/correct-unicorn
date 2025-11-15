@@ -1,5 +1,6 @@
 module CorrectUnicorn
     ( genPassword
+    , genPasswordString
     , showDictionaryStatus
     , showSecurityStats
     , Settings(..)
@@ -12,6 +13,8 @@ module CorrectUnicorn
     , joinWithSeparator
     , resolveColors
     , generateWithWordCount
+    , filterWords
+    , defaultStopChars
     ) where
 
 import Options.Applicative
@@ -37,6 +40,8 @@ data Settings = Settings
   , settingsCapitalize :: Bool
   , settingsInteractive :: Bool
   , settingsSecurity :: Bool
+  , settingsClipboard :: Bool
+  , settingsQuiet :: Bool
   } deriving (Show, Eq)
 
 settings :: Parser Settings
@@ -77,6 +82,14 @@ settings = Settings
           ( long "security"
          <> short 'z'
          <> help "Show security statistics (entropy and crack time estimates)" )
+      <*> switch
+          ( long "clipboard"
+         <> short 'x'
+         <> help "Copy passphrase to clipboard" )
+      <*> switch
+          ( long "quiet"
+         <> short 'q'
+         <> help "Suppress output to stdout (use with --clipboard)" )
 
 -- | Dictionary source type
 data DictSource = Custom | Configured | Fallback deriving (Show, Eq)
@@ -93,6 +106,14 @@ data DictStatus = DictStatus
 applyIf :: Bool -> (a -> a) -> (a -> a)
 applyIf True f = f
 applyIf False _ = id
+
+-- | Default characters to filter from dictionary words
+defaultStopChars :: [Char]
+defaultStopChars = "'"
+
+-- | Filter out words containing any of the specified characters
+filterWords :: [Char] -> [String] -> [String]
+filterWords stopChars = filter (\word -> not (any (`elem` word) stopChars))
 
 -- | Capitalize first letter of each word in a list
 capitalizeWords :: [String] -> [String]
@@ -150,7 +171,8 @@ checkDict path source = do
   wordCount <- if exists
     then do
       content <- readFile path
-      return $ Just $ length $ lines content
+      let filteredWords = filterWords defaultStopChars $ lines content
+      return $ Just $ length filteredWords
     else return Nothing
   return $ DictStatus path exists wordCount source
 
@@ -225,8 +247,11 @@ showSecurityStats sysConfig _userConfig cliSettings = do
 
   -- Read and count words
   content <- readFile selectedDictPath
-  let dictWords = lines content
+  let allWords = lines content
+      dictWords = filterWords defaultStopChars allWords
+      originalSize = length allWords
       dictSize = length dictWords
+      filteredCount = originalSize - dictSize
       wordCount = settingsWordCount cliSettings
       keyspace = calculateKeyspace dictSize wordCount
       entropy = calculateEntropy dictSize wordCount
@@ -234,12 +259,14 @@ showSecurityStats sysConfig _userConfig cliSettings = do
   -- Display statistics header
   printf "Security Statistics:\n\n\
          \  Dictionary: %s\n\
-         \  Dictionary size: %d words\n\
+         \  Original size: %d words\n\
+         \  Filtered out: %d words (containing: %s)\n\
+         \  Usable words: %d\n\
          \  Words in passphrase: %d\n\
          \  Total combinations: %d\n\
          \  Entropy: %.1f bits\n\n\
          \Estimated crack time (knowing dictionary and word count):\n"
-    selectedDictPath dictSize wordCount keyspace entropy
+    selectedDictPath originalSize filteredCount defaultStopChars dictSize wordCount keyspace entropy
 
   -- Show crack times at different rates
   let rates = [ (1000000, "1,000,000 guesses/second (modern GPU)")
@@ -255,13 +282,12 @@ showSecurityStats sysConfig _userConfig cliSettings = do
           timeStr = humanReadableDuration' seconds
       printf "  At %s: %s\n" desc timeStr
 
-genPassword :: RuntimeConfig -> IO ()
-genPassword config = do
+genPasswordString :: RuntimeConfig -> IO String
+genPasswordString config = do
   content <- readFile (T.unpack $ runtimeDictPath config)
   stdGen <- getStdGen
-  let dictionaryWords = lines content
-      output = generatePassword config dictionaryWords (runtimeWordCount config) stdGen
-  putStrLn output
+  let dictionaryWords = filterWords defaultStopChars $ lines content
+  return $ generatePassword config dictionaryWords (runtimeWordCount config) stdGen
   where
     generatePassword :: RuntimeConfig -> [String] -> Int -> StdGen -> String
     generatePassword cfg dictionaryWords wordCount gen =
@@ -273,6 +299,9 @@ genPassword config = do
              if charCount >= minChars
                then result
                else generatePassword cfg dictionaryWords (wordCount + 1) gen
+
+genPassword :: RuntimeConfig -> IO ()
+genPassword config = genPasswordString config >>= putStrLn
 
 resolveColors :: [Text] -> [String]
 resolveColors colorNames =
