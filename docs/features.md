@@ -61,7 +61,7 @@ This document provides a comprehensive overview of features for correct-unicorn,
 | Entropy display | ✓ (with `-z`) | ✗ | ✗ | High |
 | Custom RNG source | ✓ `-r/--random` | ✗ | ✗ | Medium |
 | **Integration** |
-| Clipboard support | ✗ | ✗ | ✗ | **High (Planned)** |
+| Clipboard support | ✗ | ✗ | ✗ | Out of Scope |
 | Pass integration | ✗ | ✗ | ✗ | **High (Planned)** |
 | **UI/UX** |
 | Help text | ✓ `-h/--help` | ✓ `-h/--help` | ✓ `--help` | ✓ Done |
@@ -241,22 +241,26 @@ it would take about 3468175.24 years at most, making 1 guess every fifth second.
 ### 5. Integration Features
 
 #### 5.1 Clipboard Integration
-**Status**: ✗ Not implemented
-**Priority**: **High** (core planned feature)
-**Command (proposed)**: `--clipboard`, `-x`
-**Description**: Copy generated passphrase directly to system clipboard
-**Implementation options**:
-- Use `xclip` (X11)
-- Use `wl-copy` (Wayland)
-- Use `pbcopy` (macOS, for cross-platform support)
-- Detect available clipboard tool automatically
+**Status**: ✗ Out of Scope
+**Priority**: Low (deferred to password managers)
 
-**Example**:
-```bash
-correct-unicorn -w 5 --clipboard
-# Output: phrase opposite cloth statement unicorn
-# (also copied to clipboard)
-```
+**Decision**: Clipboard management with auto-expiry is better handled by dedicated password managers (pass, 1Password, Bitwarden, KeePassXC). These tools already implement:
+- Secure clipboard clearing (platform-specific)
+- Configurable timeouts
+- Integration with system clipboard managers
+
+**Rationale**:
+- Clipboard auto-expiry requires platform-specific background processes
+- macOS has no native expiry support (even in 2025)
+- KDE Klipper, GNOME clipboard managers have their own history/timeout settings
+- Password managers already solve this problem comprehensively
+- correct-unicorn's focus: Generate passphrases, not manage them
+
+**User workflow**: Generate passphrase → manually copy → paste into password manager
+- Simple: `correct-unicorn -w 5` → select and copy output
+- With pass: `correct-unicorn -w 5 | pass insert -e github.com/myaccount`
+
+**Note**: Implementation exists in git stash `feat: clipboard support (incomplete)` if needed in future.
 
 #### 5.2 Pass (password-store) Integration
 **Status**: ✗ Not implemented
@@ -437,81 +441,78 @@ cat custom-words.txt | correct-unicorn --stdin -w 4
    - Educational output about passphrase strength
 
 ### Phase 2: Integration Features (High Priority)
-**Goal**: Integrate with Linux terminal ecosystem
+**Goal**: Integrate with password managers and configuration
 
-7. **Clipboard support** (`--clipboard`)
-   - Auto-detect clipboard tool (xclip/wl-copy/pbcopy)
-   - Copy to clipboard after generation
-   - Optional: clipboard-only mode (no stdout)
-
-8. **Pass integration** (`--pass PATH`)
+7. **Pass integration** (`--pass PATH`)
    - Generate and insert into password-store
    - Support pass options (multiline, etc.)
    - Handle pass errors gracefully
+   - Note: Pass provides clipboard management with `-c` flag
 
-9. **Configuration file**
-   - YAML-based config in `~/.config/correct-unicorn/`
-   - Store user preferences
+8. **Configuration file**
+   - TOML-based config in `~/.config/correct-unicorn/` (user preferences)
+   - System config in `/etc/correct-unicorn/config.toml` (security settings)
+   - Store user preferences (colors, separator, bold)
    - Wordlist directories
    - Default generation options
-   - Color schemes
+   - Stop-list characters for filtering
 
 ### Phase 3: Visual Polish (Medium Priority)
 **Goal**: Perfect the retro hacker aesthetics
 
-10. **Retro hacker visual design**
-    - Design color schemes for classic terminal aesthetic
-    - Test across various terminal emulators
-    - Ensure compatibility with both modern and retro-styled terminals
-    - Optional ASCII art banner
-    - Configurable color sets
+9. **Retro hacker visual design**
+   - Design color schemes for classic terminal aesthetic
+   - Test across various terminal emulators
+   - Ensure compatibility with both modern and retro-styled terminals
+   - Optional ASCII art banner
+   - Configurable color sets
 
-11. **Enable additional colors**
+10. **Enable additional colors**
     - Uncomment blue/magenta in usedColors
     - Make color selection configurable
     - Per-wordlist color schemes
 
-12. **TTY detection**
+11. **TTY detection**
     - Auto-disable colors when piping
     - Force-color flag for overriding
 
 ### Phase 4: Enhanced Generation (Medium Priority)
 **Goal**: Advanced passphrase generation options
 
-13. **Multiple passphrase generation**
+12. **Multiple passphrase generation**
     - `correct-unicorn 5` generates 5 passphrases
     - Numbered or bulleted output
 
-14. **Force word inclusion** (`-i/--include`)
+13. **Force word inclusion** (`-i/--include`)
     - Ensure specific words appear
     - Validation of included words
 
-15. **CamelCase mode** (`-u/--camelcase`)
+14. **CamelCase mode** (`-u/--camelcase`)
     - Capitalize first letter of each word
     - Combine with custom separators
 
-16. **Configurable RNG source** (`-r/--random`)
+15. **Configurable RNG source** (`-r/--random`)
     - Support /dev/random, /dev/urandom
     - Custom entropy sources
 
 ### Phase 5: Utilities & Polish (Low Priority)
 **Goal**: Complete feature parity and beyond
 
-17. **Wordlist management commands**
+16. **Wordlist management commands**
     - `--wordlists`: List available
     - `--wordcount`: Show word counts
     - `--wordlists --full`: Show paths
 
-18. **Version and info commands**
+17. **Version and info commands**
     - `--version`
     - License information
     - Help improvements
 
-19. **Verbose mode** (`-v/--verbose`)
+18. **Verbose mode** (`-v/--verbose`)
     - Show generation details
     - Debug information
 
-20. **Advanced features**
+19. **Advanced features**
     - Stdin wordlist support
     - Custom word filters
     - Pattern-based generation
