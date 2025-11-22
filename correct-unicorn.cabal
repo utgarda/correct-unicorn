@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           correct-unicorn
-version:        0.1.3.0
+version:        0.2.0.0
 synopsis:       passphrase generator inspired by xkcd 936
 description:    Please see the README on GitHub at <https://github.com/utgarda/correct-unicorn#readme>
 category:       security
@@ -29,6 +29,7 @@ library
   exposed-modules:
       Config
       CorrectUnicorn
+      PassIntegration
       PrettyAnsi
   other-modules:
       Paths_correct_unicorn
@@ -42,6 +43,7 @@ library
     , filepath >=1.4
     , human-readable-duration
     , optparse-applicative >=0.14.3
+    , process >=1.6
     , random
     , text
     , tomland >=1.3
@@ -62,6 +64,7 @@ executable correct-unicorn
     , filepath >=1.4
     , human-readable-duration
     , optparse-applicative >=0.14.3
+    , process >=1.6
     , random
     , text
     , tomland >=1.3
@@ -86,6 +89,7 @@ test-suite correct-unicorn-test
     , hedgehog >=1.0
     , human-readable-duration
     , optparse-applicative >=0.14.3
+    , process >=1.6
     , random
     , tasty >=1.4
     , tasty-golden >=2.3
