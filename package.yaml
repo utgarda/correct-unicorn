@@ -29,6 +29,7 @@ dependencies:
 - text
 - containers
 - human-readable-duration
+- process >= 1.6
 
 ghc-options:
 - -Wall

@@ -39,6 +39,20 @@ stack exec -- correct-unicorn --words 4
 stack exec -- correct-unicorn --interactive
 ```
 
+## Pass Integration
+
+Generate passphrases and insert directly into [pass](https://www.passwordstore.org/):
+
+```bash
+# Generate and store in pass
+correct-unicorn --words 5 --pass github.com/username
+
+# With custom options
+correct-unicorn -w 6 -s "-" --capitalize --pass work/email
+```
+
+See [docs/pass-integration.md](docs/pass-integration.md) for setup guide.
+
 ## Features
 
 - Auto-discovers system dictionaries
@@ -46,6 +60,7 @@ stack exec -- correct-unicorn --interactive
 - ANSI color cycling for better readability
 - Interactive mode for transparency
 - Minimal character substitution for complexity requirements
+- Pass password manager integration
 
 ## Configuration
 
@@ -57,6 +72,7 @@ See [docs/configuration.md](docs/configuration.md)
 ## Documentation
 
 - [Installation Guide](docs/installation.md)
+- [Pass Integration](docs/pass-integration.md)
 - [Dictionary Management](docs/dictionaries.md)
 - [Configuration](docs/configuration.md)
 - [Features Roadmap](docs/features.md)

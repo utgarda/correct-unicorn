@@ -41,8 +41,9 @@ data Settings = Settings
   , settingsCapitalize :: Bool
   , settingsInteractive :: Bool
   , settingsSecurity :: Bool
-  , settingsClipboard :: Bool
   , settingsQuiet :: Bool
+  , settingsPass :: Maybe String
+  , settingsPassForce :: Bool
   } deriving (Show, Eq)
 
 settings :: Parser Settings
@@ -84,13 +85,18 @@ settings = Settings
          <> short 'z'
          <> help "Show security statistics (entropy and crack time estimates)" )
       <*> switch
-          ( long "clipboard"
-         <> short 'x'
-         <> help "Copy passphrase to clipboard" )
-      <*> switch
           ( long "quiet"
          <> short 'q'
-         <> help "Suppress output to stdout (use with --clipboard)" )
+         <> help "Suppress output to stdout (use with --pass)" )
+      <*> optional (strOption
+          ( long "pass"
+         <> short 'P'
+         <> metavar "PATH"
+         <> help "Insert passphrase into pass at PATH (e.g., github.com/username)" ))
+      <*> switch
+          ( long "pass-force"
+         <> short 'F'
+         <> help "Overwrite existing pass entry without confirmation" )
 
 -- | Dictionary source type
 data DictSource = Custom | Configured | Fallback deriving (Show, Eq)

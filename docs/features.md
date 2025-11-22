@@ -62,7 +62,7 @@ This document provides a comprehensive overview of features for correct-unicorn,
 | Custom RNG source | ✓ `-r/--random` | ✗ | ✗ | Medium |
 | **Integration** |
 | Clipboard support | ✗ | ✗ | ✗ | Out of Scope |
-| Pass integration | ✗ | ✗ | ✗ | **High (Planned)** |
+| Pass integration | ✓ `-P/--pass` | ✗ | ✗ | ✓ Done |
 | **UI/UX** |
 | Help text | ✓ `-h/--help` | ✓ `-h/--help` | ✓ `--help` | ✓ Done |
 | Version info | ✓ `--version` | ✓ `-v/--version` | ✗ | Low |
@@ -263,29 +263,36 @@ it would take about 3468175.24 years at most, making 1 guess every fifth second.
 **Note**: Implementation exists in git stash `feat: clipboard support (incomplete)` if needed in future.
 
 #### 5.2 Pass (password-store) Integration
-**Status**: ✗ Not implemented
-**Priority**: **High** (core planned feature)
-**Command (proposed)**: `--pass PATH`, `-P PATH`
+**Status**: ✓ Implemented (v0.2.0)
+**Priority**: High
+**Command**: `--pass PATH`, `-P PATH`, `--pass-force`, `-F`
 **Description**: Generate passphrase and store in pass password manager
-**Implementation**:
-- Execute `pass insert PATH` with generated passphrase
-- Support for `--no-echo` mode
-- Optional: generate and add metadata (URL, username)
 
-**Example**:
+**Usage**:
 ```bash
-correct-unicorn -w 6 --pass github.com/myaccount
-# Generates passphrase and executes:
-# echo "phrase opposite cloth statement unicorn amazing" | pass insert github.com/myaccount
+# Generate and insert into pass
+correct-unicorn -w 6 --pass github.com/username
+
+# With options
+correct-unicorn -w 5 -s "-" --capitalize --pass work/email
+
+# Force overwrite existing entry
+correct-unicorn -w 6 --pass github.com/username --pass-force
+
+# Quiet mode (no stdout)
+correct-unicorn -w 5 --pass email/gmail --quiet
 ```
 
-**Configuration (proposed)**:
-- Default pass path prefix via config file
-- `~/.config/correct-unicorn/config.yaml`:
-  ```yaml
-  pass:
-    default_prefix: "websites/"
-  ```
+**Features**:
+- Detects if pass is installed and initialized
+- Helpful error messages with setup instructions
+- Strips ANSI codes before insertion
+- Works with all correct-unicorn options (separator, capitalize, etc.)
+- Integrates with pass's clipboard and git features
+
+**Security**: correct-unicorn can only insert passwords (uses GPG public key), cannot read existing passwords (would require GPG private key passphrase).
+
+**Documentation**: See [docs/pass-integration.md](pass-integration.md) for complete setup guide.
 
 #### 5.3 Configuration File Support
 **Status**: ✗ Not implemented
@@ -440,14 +447,15 @@ cat custom-words.txt | correct-unicorn --stdin -w 4
    - Show crack time estimates
    - Educational output about passphrase strength
 
-### Phase 2: Integration Features (High Priority)
-**Goal**: Integrate with password managers and configuration
-
-7. **Pass integration** (`--pass PATH`)
+7. **Pass integration** (`--pass PATH`) ✓ COMPLETED (v0.2.0)
    - Generate and insert into password-store
-   - Support pass options (multiline, etc.)
-   - Handle pass errors gracefully
-   - Note: Pass provides clipboard management with `-c` flag
+   - Helpful error messages with setup instructions
+   - Strips ANSI codes before insertion
+   - Works with `--pass-force` for overwrites
+   - Documentation: [docs/pass-integration.md](pass-integration.md)
+
+### Phase 2: Configuration & Advanced Features
+**Goal**: Enhanced configuration and advanced generation options
 
 8. **Configuration file**
    - TOML-based config in `~/.config/correct-unicorn/` (user preferences)

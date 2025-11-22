@@ -20,7 +20,7 @@ import qualified Prelude as P
 tests :: TestTree
 tests = testGroup "CorrectUnicorn tests"
   [ testCase "Settings word count" $
-      settingsWordCount (Settings 5 Nothing Nothing False Nothing False False False False False) @?= 5
+      settingsWordCount (Settings 5 Nothing Nothing False Nothing False False False False Nothing False) @?= 5
 
   , testGroup "Security calculations (unit tests)"
       [ testCase "calculateEntropy with dict=100, words=4" $

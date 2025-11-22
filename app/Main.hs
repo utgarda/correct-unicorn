@@ -1,10 +1,13 @@
 module Main where
 
 import Options.Applicative
-import System.IO (hIsTerminalDevice, stdout)
+import System.IO (hIsTerminalDevice, stdout, hPutStrLn, stderr)
+import System.Exit (exitFailure)
+import Control.Monad (unless)
 
 import CorrectUnicorn
 import Config
+import qualified PassIntegration as Pass
 
 main :: IO ()
 main = do
@@ -36,4 +39,31 @@ generateAndDisplay sysConfig userConfig cliSettings = do
     noColor
     (settingsMinChars cliSettings)
     (settingsCapitalize cliSettings)
-  genPassword runtimeConfig
+
+  -- Generate passphrase
+  passphrase <- genPasswordString runtimeConfig
+
+  -- Handle pass integration if requested
+  case settingsPass cliSettings of
+    Nothing ->
+      -- Normal output: print to stdout unless quiet mode
+      unless (settingsQuiet cliSettings) $ putStrLn passphrase
+
+    Just passPath -> do
+      -- Strip ANSI codes for pass storage
+      let cleanPassphrase = stripAnsi passphrase
+
+      -- Insert into pass
+      result <- Pass.insertIntoPass passPath cleanPassphrase (settingsPassForce cliSettings)
+
+      case result of
+        Left err -> do
+          -- Print error message to stderr
+          hPutStrLn stderr $ Pass.formatPassError err
+          exitFailure
+
+        Right () -> do
+          -- Success: optionally print to stdout and stderr message
+          unless (settingsQuiet cliSettings) $ do
+            putStrLn passphrase
+            hPutStrLn stderr $ "Passphrase inserted into pass: " ++ passPath
