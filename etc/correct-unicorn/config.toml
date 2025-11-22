@@ -13,9 +13,10 @@ dict-paths = [
   "/usr/dict/words"                     # Legacy Unix systems
 ]
 
-# Minimum dictionary requirements
+# Dictionary filtering requirements
 min-words = 1000        # Minimum unique words for security
-min-word-length = 2     # Minimum length per word
+min-word-length = 3     # Minimum length per word (filters short words)
+max-word-length = 12    # Maximum length per word (filters long/complex words)
 
 # Character substitutions for password complexity requirements
 # Applied when --require-special-chars or similar flags are used

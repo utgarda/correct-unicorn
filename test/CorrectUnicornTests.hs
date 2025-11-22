@@ -265,6 +265,7 @@ prop_generatedNoStopChars = property $ do
             , runtimeSubstitutions = Map.empty
             , runtimeMinWords = 0
             , runtimeMinWordLength = 0
+            , runtimeMaxWordLength = 100
             , runtimeMinChars = Nothing
             , runtimeCapitalize = False
             }

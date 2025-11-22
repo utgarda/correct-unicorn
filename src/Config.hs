@@ -29,6 +29,7 @@ data SystemConfig = SystemConfig
   { dictPaths :: [Text]
   , minWords :: Int
   , minWordLength :: Int
+  , maxWordLength :: Int
   , substitutions :: Map Text Text
   } deriving (Show, Eq)
 
@@ -50,6 +51,7 @@ data RuntimeConfig = RuntimeConfig
   , runtimeSubstitutions :: Map Text Text
   , runtimeMinWords :: Int
   , runtimeMinWordLength :: Int
+  , runtimeMaxWordLength :: Int
   , runtimeMinChars :: Maybe Int
   , runtimeCapitalize :: Bool
   } deriving (Show, Eq)
@@ -59,7 +61,8 @@ defaultSystemConfig :: SystemConfig
 defaultSystemConfig = SystemConfig
   { dictPaths = ["/usr/share/dict/words", "/usr/share/dict/english", "/usr/share/dict/american-english"]
   , minWords = 1000
-  , minWordLength = 2
+  , minWordLength = 3
+  , maxWordLength = 12
   , substitutions = Map.fromList [("o", "0"), ("a", "@"), ("e", "3"), ("i", "!"), ("s", "$")]
   }
 
@@ -77,6 +80,7 @@ systemConfigCodec = SystemConfig
   <$> Toml.arrayOf Toml._Text "dict-paths" .= dictPaths
   <*> Toml.int "min-words" .= minWords
   <*> Toml.int "min-word-length" .= minWordLength
+  <*> Toml.int "max-word-length" .= maxWordLength
   <*> Toml.tableMap Toml._KeyText Toml.text "substitutions" .= substitutions
 
 -- | Tomland codec for UserConfig
@@ -142,6 +146,7 @@ mergeConfig sysConfig userConfig wordCount mDictPath mSeparator noColor mMinChar
     , runtimeSubstitutions = substitutions sysConfig
     , runtimeMinWords = minWords sysConfig
     , runtimeMinWordLength = minWordLength sysConfig
+    , runtimeMaxWordLength = maxWordLength sysConfig
     , runtimeMinChars = mMinChars
     , runtimeCapitalize = capitalize
     }

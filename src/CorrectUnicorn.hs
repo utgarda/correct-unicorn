@@ -14,6 +14,7 @@ module CorrectUnicorn
     , resolveColors
     , generateWithWordCount
     , filterWords
+    , filterWordsByLength
     , defaultStopChars
     ) where
 
@@ -115,6 +116,10 @@ defaultStopChars = "'"
 filterWords :: [Char] -> [String] -> [String]
 filterWords stopChars = filter (\word -> not (any (`elem` word) stopChars))
 
+-- | Filter words by length (min and max)
+filterWordsByLength :: Int -> Int -> [String] -> [String]
+filterWordsByLength minLen maxLen = filter (\word -> let len = length word in len >= minLen && len <= maxLen)
+
 -- | Capitalize first letter of each word in a list
 capitalizeWords :: [String] -> [String]
 capitalizeWords = map capitalizeWord
@@ -165,13 +170,13 @@ determineSelectedDict configPaths mCustomPath = case mCustomPath of
     return $ maybe "/usr/share/dict/words" T.unpack found
 
 -- | Check a single dictionary and return its status
-checkDict :: FilePath -> DictSource -> IO DictStatus
-checkDict path source = do
+checkDict :: FilePath -> DictSource -> Int -> Int -> IO DictStatus
+checkDict path source minLen maxLen = do
   exists <- doesFileExist path
   wordCount <- if exists
     then do
       content <- readFile path
-      let filteredWords = filterWords defaultStopChars $ lines content
+      let filteredWords = filterWordsByLength minLen maxLen $ filterWords defaultStopChars $ lines content
       return $ Just $ length filteredWords
     else return Nothing
   return $ DictStatus path exists wordCount source
@@ -192,7 +197,9 @@ showDictionaryStatus sysConfig mDictPath = do
                    ++ [(fallbackPath, Fallback) | not hasFallback]
 
   -- Check all dictionaries
-  statuses <- mapM (uncurry checkDict) pathsToCheck
+  let minLen = minWordLength sysConfig
+      maxLen = maxWordLength sysConfig
+  statuses <- mapM (\(path, source) -> checkDict path source minLen maxLen) pathsToCheck
 
   -- Determine which will be selected
   selectedPath <- determineSelectedDict configPaths mDictPath
@@ -248,10 +255,23 @@ showSecurityStats sysConfig _userConfig cliSettings = do
   -- Read and count words
   content <- readFile selectedDictPath
   let allWords = lines content
-      dictWords = filterWords defaultStopChars allWords
       originalSize = length allWords
+      minLen = minWordLength sysConfig
+      maxLen = maxWordLength sysConfig
+
+      -- Apply filters separately to track counts
+      afterApostropheFilter = filterWords defaultStopChars allWords
+      apostropheFilteredCount = originalSize - length afterApostropheFilter
+
+      tooShort = filter (\w -> length w < minLen) afterApostropheFilter
+      tooShortCount = length tooShort
+
+      tooLong = filter (\w -> length w > maxLen) afterApostropheFilter
+      tooLongCount = length tooLong
+
+      dictWords = filterWordsByLength minLen maxLen afterApostropheFilter
       dictSize = length dictWords
-      filteredCount = originalSize - dictSize
+
       wordCount = settingsWordCount cliSettings
       keyspace = calculateKeyspace dictSize wordCount
       entropy = calculateEntropy dictSize wordCount
@@ -259,14 +279,19 @@ showSecurityStats sysConfig _userConfig cliSettings = do
   -- Display statistics header
   printf "Security Statistics:\n\n\
          \  Dictionary: %s\n\
-         \  Original size: %d words\n\
-         \  Filtered out: %d words (containing: %s)\n\
+         \  Original size: %d words\n\n\
+         \  Filtering applied:\n\
+         \    - Removed apostrophes ('): %d words\n\
+         \    - Too short (< %d chars): %d words\n\
+         \    - Too long (> %d chars): %d words\n\n\
          \  Usable words: %d\n\
          \  Words in passphrase: %d\n\
          \  Total combinations: %d\n\
          \  Entropy: %.1f bits\n\n\
          \Estimated crack time (knowing dictionary and word count):\n"
-    selectedDictPath originalSize filteredCount defaultStopChars dictSize wordCount keyspace entropy
+    selectedDictPath originalSize apostropheFilteredCount
+    minLen tooShortCount maxLen tooLongCount
+    dictSize wordCount keyspace entropy
 
   -- Show crack times at different rates
   let rates = [ (1000000, "1,000,000 guesses/second (modern GPU)")
@@ -286,7 +311,9 @@ genPasswordString :: RuntimeConfig -> IO String
 genPasswordString config = do
   content <- readFile (T.unpack $ runtimeDictPath config)
   stdGen <- getStdGen
-  let dictionaryWords = filterWords defaultStopChars $ lines content
+  let minLen = runtimeMinWordLength config
+      maxLen = runtimeMaxWordLength config
+      dictionaryWords = filterWordsByLength minLen maxLen $ filterWords defaultStopChars $ lines content
   return $ generatePassword config dictionaryWords (runtimeWordCount config) stdGen
   where
     generatePassword :: RuntimeConfig -> [String] -> Int -> StdGen -> String
