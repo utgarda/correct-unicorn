@@ -44,10 +44,13 @@ jobs:
         run: |
           echo "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
           gpg --list-secret-keys
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          gpg-connect-agent reloadagent /bye
 
       - name: Sign release tarball
         run: |
-          gpg --batch --yes --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
+          gpg --batch --yes --no-tty --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
           gpg --verify correct-unicorn-${VERSION}.tar.gz.asc correct-unicorn-${VERSION}.tar.gz
 
       - name: Generate checksums
