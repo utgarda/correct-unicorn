@@ -78,6 +78,28 @@ See [docs/configuration.md](docs/configuration.md)
 - [Features Roadmap](docs/features.md)
 - [Packaging](docs/packaging/)
 
+## Release Verification
+
+Releases are signed with GPG key:
+```
+Key ID: 3B00CAB0BD4D8648
+Fingerprint: 37532468A03463C48B7631403B00CAB0BD4D8648
+```
+
+Verify downloads:
+```bash
+# Import public key
+gpg --keyserver keys.openpgp.org --recv-keys 3B00CAB0BD4D8648
+
+# Verify signature
+gpg --verify correct-unicorn-VERSION.tar.gz.asc correct-unicorn-VERSION.tar.gz
+
+# Verify checksums
+sha256sum -c SHA256SUMS
+```
+
+Releases also include [SLSA provenance](https://slsa.dev/) for supply chain verification.
+
 ## License
 
 MIT

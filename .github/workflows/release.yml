@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Haskell
+        uses: actions/setup-haskell@v1
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Build project
+        run: |
+          stack build --test --no-run-tests
+          stack sdist
+
+      - name: Prepare release artifacts
+        run: |
+          cp $(stack path --dist-dir)/correct-unicorn-*.tar.gz ./
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          mv correct-unicorn-*.tar.gz correct-unicorn-${VERSION}.tar.gz
+
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
+          gpg --list-secret-keys
+
+      - name: Sign release tarball
+        run: |
+          gpg --batch --yes --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
+          gpg --verify correct-unicorn-${VERSION}.tar.gz.asc correct-unicorn-${VERSION}.tar.gz
+
+      - name: Generate checksums
+        id: hash
+        run: |
+          sha256sum correct-unicorn-${VERSION}.tar.gz > SHA256SUMS
+          echo "hashes=$(sha256sum correct-unicorn-${VERSION}.tar.gz | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            correct-unicorn-${{ env.VERSION }}.tar.gz
+            correct-unicorn-${{ env.VERSION }}.tar.gz.asc
+            SHA256SUMS
+          body: |
+            See [ChangeLog.md](https://github.com/utgarda/correct-unicorn/blob/master/ChangeLog.md) for release details.
+
+            ## Verification
+
+            **GPG Signature:**
+            ```bash
+            # Import public key (Key ID: ${{ vars.GPG_FINGERPRINT }})
+            gpg --keyserver keys.openpgp.org --recv-keys ${{ vars.GPG_FINGERPRINT }}
+
+            # Verify signature
+            gpg --verify correct-unicorn-${{ env.VERSION }}.tar.gz.asc correct-unicorn-${{ env.VERSION }}.tar.gz
+            ```
+
+            **Checksums:**
+            ```bash
+            sha256sum -c SHA256SUMS
+            ```
+
+            **SLSA Provenance:**
+            ```bash
+            slsa-verifier verify-artifact \
+              --provenance-path provenance.intoto.jsonl \
+              --source-uri github.com/utgarda/correct-unicorn
+            ```
+          draft: false
+          prerelease: false
+
+  provenance:
+    needs: [build-and-release]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: "${{ needs.build-and-release.outputs.hashes }}"
+      upload-assets: true
+      upload-tag-name: ${{ github.ref_name }}
