@@ -17,29 +17,55 @@ jobs:
         run: |
           echo "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
 
+      - name: Kill GPG agent
+        run: |
+          gpgconf --kill gpg-agent || true
+
       - name: Configure GPG for CI
         run: |
-          mkdir -p ~/.gnupg
-          chmod 700 ~/.gnupg
-          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
-          echo "pinentry-mode loopback" > ~/.gnupg/gpg.conf
-          echo "use-agent" >> ~/.gnupg/gpg.conf
-          chmod 600 ~/.gnupg/gpg-agent.conf ~/.gnupg/gpg.conf
-          gpg-connect-agent reloadagent /bye
+          cat > ~/.gnupg/gpg.conf <<EOF
+          use-agent
+          pinentry-mode loopback
+          EOF
+
+          cat > ~/.gnupg/gpg-agent.conf <<EOF
+          allow-loopback-pinentry
+          default-cache-ttl 21600
+          max-cache-ttl 21600
+          EOF
+
+          chmod 600 ~/.gnupg/gpg.conf ~/.gnupg/gpg-agent.conf
 
       - name: List GPG keys
         run: |
+          echo "=== Secret keys ==="
           gpg --list-secret-keys --keyid-format LONG
+          echo "=== Key capabilities ==="
+          gpg --list-keys --with-subkey-fingerprint
 
       - name: Create test file
         run: |
           echo "test signing" > test.txt
 
-      - name: Sign test file
+      - name: Test 1 - Simple batch sign
         run: |
-          export GPG_TTY=$(tty)
-          gpg --batch --yes --pinentry-mode loopback --armor --detach-sign test.txt
-          ls -la test.txt*
+          echo "Attempting simple batch sign..."
+          gpg --batch --yes --armor --detach-sign test.txt && echo "SUCCESS" || echo "FAILED: $?"
+          ls -la test.txt* || true
+          rm -f test.txt.asc
+
+      - name: Test 2 - With passphrase-fd
+        run: |
+          echo "Attempting with passphrase-fd 0..."
+          echo "" | gpg --batch --yes --passphrase-fd 0 --armor --detach-sign test.txt && echo "SUCCESS" || echo "FAILED: $?"
+          ls -la test.txt* || true
+          rm -f test.txt.asc
+
+      - name: Test 3 - With pinentry-mode
+        run: |
+          echo "Attempting with pinentry-mode loopback..."
+          echo "" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --armor --detach-sign test.txt && echo "SUCCESS" || echo "FAILED: $?"
+          ls -la test.txt* || true
 
       - name: Verify signature
         run: |
