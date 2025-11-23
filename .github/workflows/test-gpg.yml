@@ -1,0 +1,34 @@
+name: Test GPG Signing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-gpg:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: List GPG keys
+        run: |
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: Create test file
+        run: |
+          echo "test signing" > test.txt
+
+      - name: Sign test file
+        run: |
+          gpg --armor --detach-sign test.txt
+          ls -la test.txt*
+
+      - name: Verify signature
+        run: |
+          gpg --verify test.txt.asc test.txt
