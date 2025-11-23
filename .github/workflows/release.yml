@@ -42,7 +42,6 @@ jobs:
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          fingerprint: ${{ vars.GPG_SIGNING_SUBKEY }}
 
       - name: Sign release tarball
         run: |
