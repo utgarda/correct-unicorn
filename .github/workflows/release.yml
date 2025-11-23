@@ -39,13 +39,15 @@ jobs:
           mv correct-unicorn-*.tar.gz correct-unicorn-${VERSION}.tar.gz
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
+          gpg --list-secret-keys --keyid-format LONG
 
       - name: Sign release tarball
         run: |
-          gpg --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
+          gpg --batch --yes --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
           gpg --verify correct-unicorn-${VERSION}.tar.gz.asc correct-unicorn-${VERSION}.tar.gz
 
       - name: Generate checksums
