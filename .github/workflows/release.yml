@@ -39,18 +39,14 @@ jobs:
           mv correct-unicorn-*.tar.gz correct-unicorn-${VERSION}.tar.gz
 
       - name: Import GPG key
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-        run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
-          gpg --list-secret-keys
-          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          gpg-connect-agent reloadagent /bye
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          fingerprint: ${{ vars.GPG_SIGNING_SUBKEY }}
 
       - name: Sign release tarball
         run: |
-          gpg --batch --yes --no-tty --pinentry-mode loopback --local-user ${{ vars.GPG_SIGNING_SUBKEY }} --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
+          gpg --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
           gpg --verify correct-unicorn-${VERSION}.tar.gz.asc correct-unicorn-${VERSION}.tar.gz
 
       - name: Generate checksums
