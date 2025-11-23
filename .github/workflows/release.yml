@@ -50,7 +50,7 @@ jobs:
 
       - name: Sign release tarball
         run: |
-          gpg --batch --yes --no-tty --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
+          gpg --batch --yes --no-tty --pinentry-mode loopback --local-user DA02A75E154B88CF --armor --detach-sign correct-unicorn-${VERSION}.tar.gz
           gpg --verify correct-unicorn-${VERSION}.tar.gz.asc correct-unicorn-${VERSION}.tar.gz
 
       - name: Generate checksums
